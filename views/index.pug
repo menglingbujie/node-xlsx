@@ -1,0 +1,11 @@
+extends layout
+
+block styles
+  link(href="/resource/styles/pure-min.css" type="text/css" rel="stylesheet")
+  link(href="/styles/index.css" type="text/css" rel="stylesheet")
+block content
+  .container
+    form.pure-form.pure-g
+      input.pure-input.pure-u-3-8(type="text" placeholder="Search text")
+      button.btn_search.pure-button.pure-button-primary.pure-u-1-8 Search
+    .pure-table.table
