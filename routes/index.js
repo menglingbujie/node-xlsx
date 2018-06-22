@@ -1,7 +1,8 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 const XLSX = require('xlsx');
 const path = require("path");
+const _ = require("lodash");
 function importExcel(filepath,callback){
   let data = [],err=null;
   try{
@@ -57,14 +58,34 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
 });
 
+const PAGESIZE=10;
 router.get('/search',function(req,res,next){
-  const searchText = req.query.s||"";
+  const reqQuery = req.query;
+  const searchText = reqQuery.s||"";
+  const page = _.toInteger(reqQuery.page)||1;
   if(!searchText){
     return res.json({ret:true,error_msg:"没有搜索内容",data:[]});
   }
-  console.log( "-==", decodeURIComponent(unescape(searchText)))
-  // console.log("====st==" + unescape(decodeURIComponent(searchText)));
-  return res.json({ ret: true, data: globalData,error_msg:''});
+  console.log( "=st=", decodeURIComponent(unescape(searchText)))
+  let pagePos = (page-1)*PAGESIZE;
+  let retData = [];
+  if(page==1){
+    retData = _.slice(globalData,pagePos,pagePos+PAGESIZE);
+  }else{
+    retData = _.slice(globalData,pagePos,pagePos+PAGESIZE-1);
+    retData.unshift(_.head(globalData));
+  }
+  let ret = {
+    ret: true, 
+    data: retData,
+    error_msg:'',
+    page:{
+      current:page,
+      size:PAGESIZE,
+      total:globalData.length
+    }
+  }
+  return res.json(ret);
 });
 
 module.exports = router;
