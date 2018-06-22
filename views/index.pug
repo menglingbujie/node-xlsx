@@ -5,7 +5,15 @@ block styles
   link(href="/styles/index.css" type="text/css" rel="stylesheet")
 block content
   .container
-    form.pure-form.pure-g
-      input.pure-input.pure-u-3-8(type="text" placeholder="Search text")
-      button.btn_search.pure-button.pure-button-primary.pure-u-1-8 Search
-    .pure-table.table
+    .pure-form.pure-g
+      input.pure-input.pure-u-3-8#searchTextId(type="text" value="夏之光" placeholder="请输入搜索内容")
+      button.btn_search.pure-button.pure-button-primary.pure-u-1-8(onclick="doSearch()") 搜索
+    
+    p.msg text 在表1中找到，以下内容
+    select#pageSelectId(onchange="pageChange()")
+    #resultList
+
+block scripts
+  script(src="/resource/js/jquery-3.3.1.min.js" type="text/javascript")
+  script(src="/resource/js/lodash.min.js" type="text/javascript")
+  script(src="/js/index.js" type="text/javascript")

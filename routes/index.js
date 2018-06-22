@@ -41,18 +41,30 @@ function importExcel(filepath,callback){
 
   callback(err,data);
 }
+let globalData = [];
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  // const file = path.resolve(__dirname,"../public/excel/0708data.xlsx");
-  // const file2 = path.resolve(__dirname,'../public/excel/baojun20180614.xlsx')
-  // importExcel(file2,(err,data)=>{
-  //   if(err){
-  //     console.log(err);
-  //   }else{
-  //     console.log(data);
-  //   }
-  // })
+  const file = path.resolve(__dirname,"../public/excel/0708data.xlsx");
+  const file2 = path.resolve(__dirname,'../public/excel/baojun20180614.xlsx')
+  importExcel(file,(err,data)=>{
+    if(err){
+      console.log(err);
+    }else{
+      // console.log(data);
+      globalData = data;
+    }
+  })
   res.render('index', { title: 'Express' });
+});
+
+router.get('/search',function(req,res,next){
+  const searchText = req.query.s||"";
+  if(!searchText){
+    return res.json({ret:true,error_msg:"没有搜索内容",data:[]});
+  }
+  console.log( "-==", decodeURIComponent(unescape(searchText)))
+  // console.log("====st==" + unescape(decodeURIComponent(searchText)));
+  return res.json({ ret: true, data: globalData,error_msg:''});
 });
 
 module.exports = router;
