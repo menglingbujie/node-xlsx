@@ -3,6 +3,7 @@ const router = express.Router();
 const XLSX = require('xlsx');
 const path = require("path");
 const _ = require("lodash");
+const fs = require("fs");
 function importExcel(filepath,callback){
   let data = [],err=null;
   try{
@@ -42,23 +43,39 @@ function importExcel(filepath,callback){
 
   callback(err,data);
 }
-let globalData = [];
+let globalData = []; // 处理xlsx后的数据
+const MAX_XLSX_FILE_SIZE=5; // 最多处理xlsx文件个数
+
+function getXlsxFilePath(){
+  const xlsxPath = path.resolve(__dirname,'../public/excel');
+  const pa = fs.readdirSync(xlsxPath);
+  return _.slice(pa,0,MAX_XLSX_FILE_SIZE);
+}
+
+function processXLSX(){
+  let xlsxFiles = getXlsxFilePath()||[];// 需要处理的xlsx文件
+  _.forEach(xlsxFiles,function(v,index){
+    const fullpath = path.resolve(__dirname,'../public/excel/',v);
+    // console.log(v,"====",fullpath)
+  })
+}
+processXLSX();
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  const file = path.resolve(__dirname,"../public/excel/0708data.xlsx");
-  const file2 = path.resolve(__dirname,'../public/excel/baojun20180614.xlsx')
-  importExcel(file,(err,data)=>{
-    if(err){
-      console.log(err);
-    }else{
-      // console.log(data);
-      globalData = data;
-    }
-  })
+  // const file = path.resolve(__dirname,"../public/excel/0708data.xlsx");
+  // importExcel(file,(err,data)=>{
+  //   if(err){
+  //     console.log(err);
+  //   }else{
+  //     // console.log(data);
+  //     globalData = data;
+  //   }
+  // })
   res.render('index', { title: 'Express' });
 });
 
 const PAGESIZE=10;
+let findData = [];
 router.get('/search',function(req,res,next){
   const reqQuery = req.query;
   const searchText = reqQuery.s||"";
@@ -66,7 +83,8 @@ router.get('/search',function(req,res,next){
   if(!searchText){
     return res.json({ret:true,error_msg:"没有搜索内容",data:[]});
   }
-  console.log( "=st=", decodeURIComponent(unescape(searchText)))
+  const fkey = decodeURIComponent(unescape(searchText));
+  // console.log( "=st=", decodeURIComponent(unescape(searchText)))
   let pagePos = (page-1)*PAGESIZE;
   let retData = [];
   if(page==1){

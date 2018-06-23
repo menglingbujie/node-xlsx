@@ -103,5 +103,5 @@
   let list = new ListClass();
   win.doSearch = list.doSearch.bind(list);
   win.pageChange = page.pageChange.bind(page);
-  win.doSearch();
+  // win.doSearch();
 })(window)
