@@ -4,6 +4,10 @@ const XLSX = require('xlsx');
 const path = require("path");
 const _ = require("lodash");
 const fs = require("fs");
+let globalData = {}; // 处理xlsx后的数据
+const MAX_XLSX_FILE_SIZE=5; // 最多处理xlsx文件个数
+const PAGESIZE=10; // 数据量
+
 function importExcel(filepath,callback){
   let sheetObject={},err=null,bname=path.basename(filepath);
   sheetObject[bname]={};
@@ -47,8 +51,6 @@ function importExcel(filepath,callback){
 
   callback(err,sheetObject);
 }
-let globalData = []; // 处理xlsx后的数据
-const MAX_XLSX_FILE_SIZE=5; // 最多处理xlsx文件个数
 
 function getXlsxFilePath(){
   const xlsxPath = path.resolve(__dirname,'../public/excel');
@@ -58,47 +60,85 @@ function getXlsxFilePath(){
 
 function processXLSX(){
   let xlsxFiles = getXlsxFilePath()||[];// 需要处理的xlsx文件
-  const fullpath = path.resolve(__dirname,'../public/excel/',xlsxFiles[0]);
-  importExcel(fullpath,(err,data)=>{
-    if(err){
-      console.log(err);
-    }else{
-      // console.log("====",data);
-      globalData = data;
-    }
+  _.forEach(xlsxFiles,(v,index)=>{
+    const fullpath = path.resolve(__dirname,'../public/excel/',v);
+    importExcel(fullpath,(err,data)=>{
+      if(err){
+        console.log(err);
+      }else{
+        // console.log("====",data);
+        // globalData.push(data);
+        globalData = _.assign(globalData,data);
+      }
+    });
   });
 }
 function doSearch(key){
+  let findData = {}; //找到的数据
   if(_.isEmpty(globalData)){alert("暂无数据");return;}
   // 遍历文件
   _.map(globalData,(fv,fk)=>{
     let sheets = globalData[fk];
+    findData[fk]={};
     // 遍历sheet
     _.map(sheets,(sv,sk)=>{
       const sdata = sheets[sk];
+      findData[fk][sk]=[];
+      let firstData = [];
+      
       // 遍历sheet数据
-      _.forEach(sdata,(d,idx)=>{
+      _.forEach(sdata,(d,idx)=>{        
+        if(idx===0){
+          firstData = d; // 取sheet的第一行数据，一般为标题啥的
+        }
         const sd = sdata[idx];
         // 开始查找
         const ret = _.indexOf(sd,key);
         //找到之后做记录
         if(ret!=-1){
-          console.log("--文件-",fk,"=表===",sk,"-数据为---",sd)
+          findData[fk][sk].push(sd);
+          // console.log("--文件-",fk,"=表===",sk,"-数据为---",sd)
         }
       })
+      if(findData[fk][sk]&&findData[fk][sk].length>0){
+        findData[fk][sk].unshift(firstData);
+      }
     })
   })
+  return findData;
+}
+function filterPageData(data,page){
+  // console.log("--bf-",JSON.stringify(data))
+
+  // _.map(data,(fv,fk)=>{
+  //   _.map(data[fk],(sv,sk)=>{
+  //   let pagePos = (page-1)*PAGESIZE;
+  //     if(page==1){
+  //       data = _.slice(sv,pagePos,pagePos+PAGESIZE);
+  //     }else{
+  //       data = _.slice(sv,pagePos,pagePos+PAGESIZE-1);
+  //       data.unshift(_.head(sv));
+  //     }
+  //   })
+  // })
+  // console.log("--af-",JSON.stringify(data))
+  return data;
 }
 processXLSX();
 
 // doSearch('天津');
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
+  // let files=[],sheets=[];
+  // _.map(globalData,(fv,fk)=>{
+  //   _.map(globalData[fk],(sv,sk)=>{
+  //     sheets
+  //   })
+  // })
+  // console.log("====",_.keys(globalData))
+  res.render('index', { files: _.keys(globalData), maxfile:MAX_XLSX_FILE_SIZE });
 });
 
-const PAGESIZE=10;
-let findData = [];
 router.get('/search',function(req,res,next){
   const reqQuery = req.query;
   const searchText = reqQuery.s||"";
@@ -108,17 +148,13 @@ router.get('/search',function(req,res,next){
   }
   const fkey = decodeURIComponent(unescape(searchText));
   // console.log( "=st=", decodeURIComponent(unescape(searchText)))
-  let pagePos = (page-1)*PAGESIZE;
+  
   let retData = doSearch(fkey);// 开始查找
-  if(page==1){
-    retData = _.slice(globalData,pagePos,pagePos+PAGESIZE);
-  }else{
-    retData = _.slice(globalData,pagePos,pagePos+PAGESIZE-1);
-    retData.unshift(_.head(globalData));
-  }
+  let filterData = filterPageData(retData,page);
+  // console.log('===reult==',JSON.stringify(filterData));
   let ret = {
     ret: true, 
-    data: retData,
+    data: filterData,
     error_msg:'',
     page:{
       current:page,

@@ -9,6 +9,7 @@
       }
     }
     pageInit(info){
+      if(!info){return;}
       this.page.current=_.toInteger(info.current)||1;
       this.page.size=_.toInteger(info.size)||10;
       this.page.total=_.toInteger(info.total)||1;
@@ -49,7 +50,7 @@
   
   class ListClass {
     constructor(){
-      this.totalList = [];
+      this.totalList = {};
       this.topList = [];
     }
     makeTableCell(val,type) {
@@ -63,23 +64,45 @@
     }
     createTableList() {
       $("#resultList").html('');
-      const tableEle = document.createElement('table');
-      tableEle.className ="pure-table table";
-      const tableTheadEle = document.createElement('thead');
-      const tableTbodyEle = document.createElement('tbody');
-      
-      _.forEach(this.totalList,(val,idx)=>{
-        if(idx==0){
-          let thead = this.makeTableCell(val, 'th');
-          tableTheadEle.appendChild(thead);
-        }else{
-          let tbody = this.makeTableCell(val, 'th');
-          tableTbodyEle.appendChild(tbody);
-        }
+      $("#msgId").text('');
+      let msg = "";
+      $("#pageSelectId").show();
+      if(_.isEmpty(this.totalList)){
+        $("#pageSelectId").hide();
+        return;
+      }
+      _.map(this.totalList,(fv,fk)=>{
+        const tableFrag = document.createDocumentFragment();
+        _.map(this.totalList[fk],(sv,sk)=>{
+          const infoDiv = document.createElement("div");
+          const tableEle = document.createElement('table');
+          infoDiv.textContent="在文件["+fk+"]的";
+          tableEle.className ="pure-table table";
+          const tableTheadEle = document.createElement('thead');
+          const tableTbodyEle = document.createElement('tbody');
+          if(_.isEmpty(sv)){
+            msg+="未在文件：["+fk+"]的["+sk+"]表中找到相应数据<br>";
+            $("#msgId").html(msg);
+            $("#pageSelectId").hide();
+          }else{
+            infoDiv.textContent+="["+sk+"]的表中找到以下数据：";
+            _.forEach(sv,(val,idx)=>{
+              if(idx==0){
+                let thead = this.makeTableCell(val, 'th');
+                tableTheadEle.appendChild(thead);
+              }else{
+                let tbody = this.makeTableCell(val, 'th');
+                tableTbodyEle.appendChild(tbody);
+              }
+            })
+            tableEle.appendChild(tableTheadEle)
+            tableEle.appendChild(tableTbodyEle)
+            tableFrag.appendChild(infoDiv);
+            tableFrag.appendChild(tableEle); 
+          }
+        })
+        $("#resultList").append(tableFrag);
       })
-      tableEle.appendChild(tableTheadEle)
-      tableEle.appendChild(tableTbodyEle)
-      $("#resultList").append(tableEle);
     }
     fetchData(val){
       let url = "/search?s="+val+"&page="+page.current+"&page_size="+page.size;
@@ -97,6 +120,7 @@
     }
     doSearch() {
       this.fetchData(this.searchText);
+      // this.fetchData("12");
     }
   }
   let page = new PageClass();
