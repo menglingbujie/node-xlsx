@@ -5,43 +5,47 @@ const path = require("path");
 const _ = require("lodash");
 const fs = require("fs");
 function importExcel(filepath,callback){
-  let data = [],err=null;
+  let sheetObject={},err=null,bname=path.basename(filepath);
+  sheetObject[bname]={};
   try{
     let workbook = XLSX.readFile(filepath);
     let sheetNames = workbook.SheetNames;
     
-    let sheet1 = workbook.Sheets[sheetNames[1]];
-    // console.log(sheetNames[0],"==workboodk==",sheet1)
-    
-    let range = XLSX.utils.decode_range(sheet1['!ref']);
+    // console.log(sheetNames,"==workboodk==")
+    // 遍历sheet并读取相应sheet数据
+    _.forEach(sheetNames,function(v,index){
+      if(!sheetObject[bname][v]){sheetObject[bname][v]=[]};
+      let sheet = workbook.Sheets[v];
+      let range = XLSX.utils.decode_range(sheet['!ref']);
 
-    for(let R=range.s.r;R<=range.e.r;++R){
-      let row=[],flag=false;
-      for(let C=range.s.c;C<=range.e.c;++C){
-        let row_value=null;
-        let cell_address = {c:C,r:R};
-        let cell = XLSX.utils.encode_cell(cell_address);
-        if(sheet1[cell]){
-          row_value=sheet1[cell].v;
-        }else{
-          row_value="";
+      for(let R=range.s.r;R<=range.e.r;++R){
+        let row=[],flag=false;
+        for(let C=range.s.c;C<=range.e.c;++C){
+          let row_value=null;
+          let cell_address = {c:C,r:R};
+          let cell = XLSX.utils.encode_cell(cell_address);
+          if(sheet[cell]){
+            row_value=sheet[cell].v;
+          }else{
+            row_value="";
+          }
+          row.push(row_value);
         }
-        row.push(row_value);
-      }
 
-      for(let i=0;i<row.length;i++){
-        if(row[i]!=''){
-          flag=true;
-          break;
+        for(let i=0;i<row.length;i++){
+          if(row[i]!=''){
+            flag=true;
+            break;
+          }
         }
+        if(flag){sheetObject[bname][v].push(row)}
       }
-      if(flag){data.push(row)}
-    }
+    })
   }catch(e){
     err = "解析出错："+e.toString();
   }
 
-  callback(err,data);
+  callback(err,sheetObject);
 }
 let globalData = []; // 处理xlsx后的数据
 const MAX_XLSX_FILE_SIZE=5; // 最多处理xlsx文件个数
@@ -54,23 +58,42 @@ function getXlsxFilePath(){
 
 function processXLSX(){
   let xlsxFiles = getXlsxFilePath()||[];// 需要处理的xlsx文件
-  _.forEach(xlsxFiles,function(v,index){
-    const fullpath = path.resolve(__dirname,'../public/excel/',v);
-    // console.log(v,"====",fullpath)
+  const fullpath = path.resolve(__dirname,'../public/excel/',xlsxFiles[0]);
+  importExcel(fullpath,(err,data)=>{
+    if(err){
+      console.log(err);
+    }else{
+      // console.log("====",data);
+      globalData = data;
+    }
+  });
+}
+function doSearch(key){
+  if(_.isEmpty(globalData)){alert("暂无数据");return;}
+  // 遍历文件
+  _.map(globalData,(fv,fk)=>{
+    let sheets = globalData[fk];
+    // 遍历sheet
+    _.map(sheets,(sv,sk)=>{
+      const sdata = sheets[sk];
+      // 遍历sheet数据
+      _.forEach(sdata,(d,idx)=>{
+        const sd = sdata[idx];
+        // 开始查找
+        const ret = _.indexOf(sd,key);
+        //找到之后做记录
+        if(ret!=-1){
+          console.log("--文件-",fk,"=表===",sk,"-数据为---",sd)
+        }
+      })
+    })
   })
 }
 processXLSX();
+
+// doSearch('天津');
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  // const file = path.resolve(__dirname,"../public/excel/0708data.xlsx");
-  // importExcel(file,(err,data)=>{
-  //   if(err){
-  //     console.log(err);
-  //   }else{
-  //     // console.log(data);
-  //     globalData = data;
-  //   }
-  // })
   res.render('index', { title: 'Express' });
 });
 
@@ -86,7 +109,7 @@ router.get('/search',function(req,res,next){
   const fkey = decodeURIComponent(unescape(searchText));
   // console.log( "=st=", decodeURIComponent(unescape(searchText)))
   let pagePos = (page-1)*PAGESIZE;
-  let retData = [];
+  let retData = doSearch(fkey);// 开始查找
   if(page==1){
     retData = _.slice(globalData,pagePos,pagePos+PAGESIZE);
   }else{
