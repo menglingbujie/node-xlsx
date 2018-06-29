@@ -92,8 +92,10 @@ function doSearch(key){
           firstData = d; // 取sheet的第一行数据，一般为标题啥的
         }
         const sd = sdata[idx];
-        // 开始查找
-        const ret = _.indexOf(sd,key);
+        // 开始模糊查找
+        const ret = _.indexOf(sd,_.find(sd,function(o){
+          return _.toString(o).match(key);
+        }));
         //找到之后做记录
         if(ret!=-1){
           findData[fk][sk].push(sd);
