@@ -8,8 +8,14 @@ block content
     .files
       .title 目前在以下文档中查找数据
       - for (var i=0;i<files.length;i++)
-        div.file=files[i]
-      .desp 最多可同时#{maxfile}文档
+        div.file
+          | [
+          =files[i]
+          | ]
+      .desp 
+        | 最多可同时
+        span.filesize [#{maxfile}]
+        | 文档
     .pure-form.pure-g.searchform
       input.pure-input.pure-u-3-8#searchTextId(type="text" placeholder="请输入要查找的内容")
       button.btn_search.pure-button.pure-button-primary.pure-u-1-8(onclick="doSearch()") 搜索
