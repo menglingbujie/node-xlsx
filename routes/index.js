@@ -11,43 +11,49 @@ const PAGESIZE=10; // 数据量
 function importExcel(filepath,callback){
   let sheetObject={},err=null,bname=path.basename(filepath);
   sheetObject[bname]={};
+
+  let workbook=null;
   try{
-    let workbook = XLSX.readFile(filepath);
-    let sheetNames = workbook.SheetNames;
-    
-    // console.log(sheetNames,"==workboodk==")
-    // 遍历sheet并读取相应sheet数据
-    _.forEach(sheetNames,function(v,index){
-      if(!sheetObject[bname][v]){sheetObject[bname][v]=[]};
-      let sheet = workbook.Sheets[v];
-      let range = XLSX.utils.decode_range(sheet['!ref']);
-
-      for(let R=range.s.r;R<=range.e.r;++R){
-        let row=[],flag=false;
-        for(let C=range.s.c;C<=range.e.c;++C){
-          let row_value=null;
-          let cell_address = {c:C,r:R};
-          let cell = XLSX.utils.encode_cell(cell_address);
-          if(sheet[cell]){
-            row_value=sheet[cell].v;
-          }else{
-            row_value="";
-          }
-          row.push(row_value);
-        }
-
-        for(let i=0;i<row.length;i++){
-          if(row[i]!=''){
-            flag=true;
-            break;
-          }
-        }
-        if(flag){sheetObject[bname][v].push(row)}
-      }
-    })
+    workbook = XLSX.readFile(filepath);
   }catch(e){
+    
     err = "解析出错："+e.toString();
+    return console.log(err);
   }
+  let sheetNames = workbook.SheetNames;
+  
+  // console.log(sheetNames,"==workboodk==")
+  // 遍历sheet并读取相应sheet数据
+  _.forEach(sheetNames,function(v,index){
+    if(!sheetObject[bname][v]){sheetObject[bname][v]=[]};
+    let sheet = workbook.Sheets[v];
+    // console.log("==sheet ref=",sheet['!ref'])
+    if(!sheet['!ref']){return;}
+    let range = XLSX.utils.decode_range(sheet['!ref']);
+    // console.log("====range==",range)
+    for(let R=range.s.r;R<=range.e.r;++R){
+      let row=[],flag=false;
+      for(let C=range.s.c;C<=range.e.c;++C){
+        let row_value=null;
+        let cell_address = {c:C,r:R};
+        let cell = XLSX.utils.encode_cell(cell_address);
+        if(sheet[cell]){
+          row_value=sheet[cell].v;
+        }else{
+          row_value="";
+        }
+        row.push(row_value);
+      }
+      for(let i=0;i<row.length;i++){
+        if(row[i]!=''){
+          flag=true;
+          break;
+        }
+      }
+      // console.log("====",sheetObject[bname][v])
+      if(flag){sheetObject[bname]&&sheetObject[bname][v]&&sheetObject[bname][v].push(row)}
+    }
+  })
 
   callback(err,sheetObject);
 }
@@ -55,7 +61,10 @@ function importExcel(filepath,callback){
 function getXlsxFilePath(){
   const xlsxPath = path.resolve(__dirname,'../public/excel');
   const pa = fs.readdirSync(xlsxPath);
-  return _.slice(pa,0,MAX_XLSX_FILE_SIZE);
+  // 只匹配xlsx或xls文件，其他的过滤掉
+  const filterPa = _.filter(pa,function(o){return o.match(/\.xls[x]*/)});
+  // console.log("==path==",filterPa);
+  return _.slice(filterPa,0,MAX_XLSX_FILE_SIZE);
 }
 
 function processXLSX(){
